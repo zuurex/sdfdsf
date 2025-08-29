@@ -1,0 +1,320 @@
+--// Full Skin Copier with Working Accessories & Hair
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Удаляем старый GUI
+if game.CoreGui:FindFirstChild("SkinGui") then
+    game.CoreGui.SkinGui:Destroy()
+end
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SkinGui"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 220, 0, 160)
+Frame.Position = UDim2.new(0, 10, 0, 10)
+Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Frame.BackgroundTransparency = 0.2
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 200, 0, 25)
+TextBox.Position = UDim2.new(0, 10, 0, 10)
+TextBox.PlaceholderText = "Ник игрока"
+TextBox.Text = ""
+TextBox.TextSize = 12
+TextBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+TextBox.TextColor3 = Color3.fromRGB(255,255,255)
+TextBox.Parent = Frame
+
+local SkinButton = Instance.new("TextButton")
+SkinButton.Size = UDim2.new(0, 200, 0, 25)
+SkinButton.Position = UDim2.new(0, 10, 0, 40)
+SkinButton.Text = "ПОЛНЫЙ СКИН + ВОЛОСЫ"
+SkinButton.TextSize = 12
+SkinButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+SkinButton.TextColor3 = Color3.fromRGB(255,255,255)
+SkinButton.Parent = Frame
+
+local AnimButton = Instance.new("TextButton")
+AnimButton.Size = UDim2.new(0, 200, 0, 25)
+AnimButton.Position = UDim2.new(0, 10, 0, 70)
+AnimButton.Text = "ТОЛЬКО АНИМАЦИИ"
+AnimButton.TextSize = 12
+AnimButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
+AnimButton.TextColor3 = Color3.fromRGB(255,255,255)
+AnimButton.Parent = Frame
+
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(0, 200, 0, 20)
+Status.Position = UDim2.new(0, 10, 0, 100)
+Status.Text = "Готово"
+Status.TextSize = 12
+Status.BackgroundTransparency = 1
+Status.TextColor3 = Color3.fromRGB(200,200,200)
+Status.Parent = Frame
+
+-- Быстрый поиск игрока
+local function findPlayer(name)
+    if name == "" then return nil end
+    name = name:lower()
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and (player.Name:lower():find(name, 1, true) or player.DisplayName:lower():find(name, 1, true)) then
+            return player
+        end
+    end
+    return nil
+end
+
+-- Функция для правильного прикрепления аксессуаров и волос
+local function attachAccessory(accessory, targetChar, myChar)
+    if not accessory or not accessory:FindFirstChild("Handle") then return end
+    
+    local targetHead = targetChar:FindFirstChild("Head")
+    local myHead = myChar:FindFirstChild("Head")
+    if not targetHead or not myHead then return end
+    
+    local handle = accessory.Handle
+    local originalWeld
+    
+    -- Ищем оригинальный weld
+    for _, child in ipairs(handle:GetChildren()) do
+        if (child:IsA("Weld") or child:IsA("Motor6D")) and child.Part0 == targetHead then
+            originalWeld = child
+            break
+        end
+    end
+    
+    -- Очищаем старые welds
+    for _, child in ipairs(handle:GetChildren()) do
+        if child:IsA("Weld") or child:IsA("Motor6D") then
+            child:Destroy()
+        end
+    end
+    
+    -- Создаем новый weld
+    if originalWeld then
+        local newWeld = originalWeld:Clone()
+        newWeld.Part0 = myHead
+        newWeld.Part1 = handle
+        newWeld.Parent = handle
+    else
+        -- Если нет weld, создаем его на основе относительного положения
+        local relativeCFrame = targetHead.CFrame:ToObjectSpace(handle.CFrame)
+        local weld = Instance.new("Weld")
+        weld.Name = "HeadWeld"
+        weld.Part0 = myHead
+        weld.Part1 = handle
+        weld.C0 = relativeCFrame
+        weld.Parent = handle
+    end
+end
+
+-- Оптимизированное копирование аксессуаров и волос
+local function copyAccessoriesAndHair(targetChar, myChar)
+    if not targetChar or not myChar then return end
+    
+    -- Удаляем старые аксессуары и волосы
+    for _, item in ipairs(myChar:GetChildren()) do
+        if item:IsA("Accessory") or item:IsA("Hat") then
+            item:Destroy()
+        end
+    end
+    
+    RunService.Heartbeat:Wait()
+    
+    -- Копируем новые аксессуары и волосы
+    local accessories = {}
+    for _, item in ipairs(targetChar:GetChildren()) do
+        if (item:IsA("Accessory") or item:IsA("Hat")) and item:FindFirstChild("Handle") then
+            table.insert(accessories, item)
+        end
+    end
+    
+    for i, accessory in ipairs(accessories) do
+        local clone = accessory:Clone()
+        clone.Parent = myChar
+        
+        -- Правильно прикрепляем аксессуар
+        attachAccessory(clone, targetChar, myChar)
+        
+        -- Задержка каждые 2 аксессуара
+        if i % 2 == 0 then
+            RunService.Heartbeat:Wait()
+        end
+    end
+end
+
+-- Полное копирование скина
+local function copyFullSkin(targetChar, myChar)
+    if not targetChar or not myChar then return false end
+    
+    local success = pcall(function()
+        -- 1. Цвет тела
+        local parts = {"Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg"}
+        for _, partName in ipairs(parts) do
+            local targetPart = targetChar:FindFirstChild(partName)
+            local myPart = myChar:FindFirstChild(partName)
+            if targetPart and myPart then
+                myPart.BrickColor = targetPart.BrickColor
+                myPart.Material = targetPart.Material
+                myPart.Transparency = targetPart.Transparency
+            end
+        end
+        
+        RunService.Heartbeat:Wait()
+        
+        -- 2. Одежда
+        for _, item in ipairs(myChar:GetChildren()) do
+            if item:IsA("Shirt") or item:IsA("Pants") or item:IsA("ShirtGraphic") then
+                item:Destroy()
+            end
+        end
+        
+        for _, item in ipairs(targetChar:GetChildren()) do
+            if item:IsA("Shirt") or item:IsA("Pants") or item:IsA("ShirtGraphic") then
+                item:Clone().Parent = myChar
+            end
+        end
+        
+        RunService.Heartbeat:Wait()
+        
+        -- 3. Голова (меш и текстура)
+        local targetHead = targetChar:FindFirstChild("Head")
+        local myHead = myChar:FindFirstChild("Head")
+        if targetHead and myHead then
+            -- Удаляем старые меши и текстуры
+            for _, child in ipairs(myHead:GetChildren()) do
+                if child:IsA("SpecialMesh") or child:IsA("Decal") then
+                    child:Destroy()
+                end
+            end
+            
+            -- Копируем новые
+            for _, child in ipairs(targetHead:GetChildren()) do
+                if child:IsA("SpecialMesh") or child:IsA("Decal") then
+                    child:Clone().Parent = myHead
+                end
+            end
+        end
+        
+        RunService.Heartbeat:Wait()
+        
+        -- 4. Аксессуары и волосы (самое важное!)
+        copyAccessoriesAndHair(targetChar, myChar)
+        
+        RunService.Heartbeat:Wait()
+        
+        -- 5. Scale тела
+        local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
+        local myHumanoid = myChar:FindFirstChildOfClass("Humanoid")
+        if targetHumanoid and myHumanoid then
+            myHumanoid.BodyTypeScale = targetHumanoid.BodyTypeScale
+            myHumanoid.HeadScale = targetHumanoid.HeadScale
+            myHumanoid.BodyDepthScale = targetHumanoid.BodyDepthScale
+            myHumanoid.BodyWidthScale = targetHumanoid.BodyWidthScale
+        end
+    end)
+    
+    return success
+end
+
+-- Копирование анимаций
+local function copyAnimations(targetChar, myChar)
+    local targetAnimate = targetChar:FindFirstChild("Animate")
+    if not targetAnimate then return false end
+    
+    local myAnimate = myChar:FindFirstChild("Animate")
+    if myAnimate then
+        myAnimate:Destroy()
+    end
+    
+    targetAnimate:Clone().Parent = myChar
+    return true
+end
+
+-- Защита от спама
+local cooldown = false
+
+local function processWithCooldown(callback)
+    if cooldown then return end
+    cooldown = true
+    
+    local success, result = pcall(callback)
+    
+    task.wait(1.5) -- Увеличил кулдаун для стабильности
+    cooldown = false
+    return success and result
+end
+
+-- Кнопка полного скина
+SkinButton.MouseButton1Click:Connect(function()
+    processWithCooldown(function()
+        local targetName = TextBox.Text
+        if targetName == "" then
+            Status.Text = "Введите ник"
+            return
+        end
+        
+        local target = findPlayer(targetName)
+        if not target or not target.Character or not LocalPlayer.Character then
+            Status.Text = "Игрок не найден"
+            return
+        end
+        
+        Status.Text = "Копируем всё..."
+        SkinButton.Text = "ЖДИТЕ..."
+        
+        local success = copyFullSkin(target.Character, LocalPlayer.Character)
+        
+        Status.Text = success and "Всё скопировано!" or "Ошибка!"
+        SkinButton.Text = success and "ГОТОВО!" or "ОШИБКА!"
+    end)
+end)
+
+-- Кнопка анимаций
+AnimButton.MouseButton1Click:Connect(function()
+    processWithCooldown(function()
+        local targetName = TextBox.Text
+        if targetName == "" then
+            Status.Text = "Введите ник"
+            return
+        end
+        
+        local target = findPlayer(targetName)
+        if not target or not target.Character or not LocalPlayer.Character then
+            Status.Text = "Игрок не найден"
+            return
+        end
+        
+        Status.Text = "Копируем анимации..."
+        AnimButton.Text = "..."
+        
+        local success = copyAnimations(target.Character, LocalPlayer.Character)
+        
+        Status.Text = success and "Анимации скопированы!" or "Анимации не найдены"
+        AnimButton.Text = success and "ГОТОВО!" or "НЕ НАЙДЕНЫ"
+    end)
+end)
+
+-- Автозаполнение
+TextBox.Focused:Connect(function()
+    if TextBox.Text == "Введите ник" then
+        TextBox.Text = ""
+    end
+end)
+
+TextBox.FocusLost:Connect(function()
+    if TextBox.Text == "" then
+        TextBox.Text = "Введите ник"
+    end
+end)
+
+TextBox.Text = "Введите ник"
