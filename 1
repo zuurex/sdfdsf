@@ -15,42 +15,92 @@ ScreenGui.Name = "SkinGui"
 ScreenGui.Parent = game.CoreGui
 
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 260, 0, 160)
+Frame.Size = UDim2.new(0, 260, 0, 180)
 Frame.Position = UDim2.new(0.5, -130, 0.4, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 Frame.Active = true
 Frame.Draggable = true
 Frame.Parent = ScreenGui
 
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 6)
+UICorner.Parent = Frame
+
 local TextBox = Instance.new("TextBox")
 TextBox.Size = UDim2.new(0, 230, 0, 36)
 TextBox.Position = UDim2.new(0, 15, 0, 12)
-TextBox.PlaceholderText = "Ник игрока"
+TextBox.PlaceholderText = "Ник игрока или часть ника"
 TextBox.Text = ""
 TextBox.TextScaled = true
 TextBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
 TextBox.TextColor3 = Color3.fromRGB(255,255,255)
 TextBox.Parent = Frame
 
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(0, 4)
+UICorner2.Parent = TextBox
+
 local Button = Instance.new("TextButton")
 Button.Size = UDim2.new(0, 230, 0, 44)
-Button.Position = UDim2.new(0, 15, 0, 66)
+Button.Position = UDim2.new(0, 15, 0, 60)
 Button.Text = "Сменить внешность"
 Button.TextScaled = true
 Button.BackgroundColor3 = Color3.fromRGB(70,70,70)
 Button.TextColor3 = Color3.fromRGB(255,255,255)
 Button.Parent = Frame
 
+local UICorner3 = Instance.new("UICorner")
+UICorner3.CornerRadius = UDim.new(0, 4)
+UICorner3.Parent = Button
+
 local AnimButton = Instance.new("TextButton")
 AnimButton.Size = UDim2.new(0, 230, 0, 30)
-AnimButton.Position = UDim2.new(0, 15, 0, 118)
+AnimButton.Position = UDim2.new(0, 15, 0, 112)
 AnimButton.Text = "Копировать анимации"
 AnimButton.TextScaled = true
 AnimButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
 AnimButton.TextColor3 = Color3.fromRGB(255,255,255)
 AnimButton.Parent = Frame
 
--- Функция для точного копирования положения аксессуара
+local UICorner4 = Instance.new("UICorner")
+UICorner4.CornerRadius = UDim.new(0, 4)
+UICorner4.Parent = AnimButton
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0, 230, 0, 20)
+StatusLabel.Position = UDim2.new(0, 15, 0, 150)
+StatusLabel.Text = "Готово"
+StatusLabel.TextScaled = true
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.fromRGB(200,200,200)
+StatusLabel.Parent = Frame
+
+-- Функция для поиска игрока по части ника
+local function findPlayerByPartialName(partialName)
+    if partialName == "" then return nil end
+    
+    partialName = partialName:lower()
+    local players = Players:GetPlayers()
+    
+    -- Сначала ищем точное совпадение
+    for _, player in ipairs(players) do
+        if player.Name:lower() == partialName or player.DisplayName:lower() == partialName then
+            return player
+        end
+    end
+    
+    -- Затем ищем частичное совпадение
+    for _, player in ipairs(players) do
+        if player.Name:lower():find(partialName, 1, true) or 
+           player.DisplayName:lower():find(partialName, 1, true) then
+            return player
+        end
+    end
+    
+    return nil
+end
+
+-- Оптимизированная функция для точного копирования положения аксессуара
 local function copyAccessoryPosition(originalAccessory, clonedAccessory, targetChar, myChar)
     local originalHandle = originalAccessory:FindFirstChild("Handle")
     local clonedHandle = clonedAccessory:FindFirstChild("Handle")
@@ -87,7 +137,6 @@ local function copyAccessoryPosition(originalAccessory, clonedAccessory, targetC
         newWeld.Parent = clonedHandle
     else
         -- Если нет weld, создаем его на основе относительного положения
-        local relativePosition = originalHandle.Position - originalHead.Position
         local relativeCFrame = originalHead.CFrame:ToObjectSpace(originalHandle.CFrame)
         
         local weld = Instance.new("Weld")
@@ -99,9 +148,8 @@ local function copyAccessoryPosition(originalAccessory, clonedAccessory, targetC
     end
 end
 
--- Функция для копирования цвета тела (ВСЕХ частей включая голову)
+-- Оптимизированная функция для копирования цвета тела
 local function copyBodyColor(targetChar, myChar)
-    -- Список всех частей тела для копирования цвета
     local bodyParts = {"Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg"}
     
     for _, partName in ipairs(bodyParts) do
@@ -109,35 +157,14 @@ local function copyBodyColor(targetChar, myChar)
         local myPart = myChar:FindFirstChild(partName)
         
         if targetPart and myPart then
-            -- Копируем цвет тела (включая цвет кожи)
             myPart.BrickColor = targetPart.BrickColor
-            myPart.Color = targetPart.Color
-            
-            -- Копируем материал и другие свойства
             myPart.Material = targetPart.Material
             myPart.Transparency = targetPart.Transparency
-            myPart.Reflectance = targetPart.Reflectance
-            
-            -- Копируем текстуры поверхности
-            for _, surface in ipairs(Enum.NormalId:GetEnumItems()) do
-                local targetTexture = targetPart:FindFirstChild(surface.Name .. "Surface")
-                local myTexture = myPart:FindFirstChild(surface.Name .. "Surface")
-                
-                if targetTexture then
-                    if myTexture then
-                        myTexture:Destroy()
-                    end
-                    local newTexture = targetTexture:Clone()
-                    newTexture.Parent = myPart
-                elseif myTexture then
-                    myTexture:Destroy()
-                end
-            end
         end
     end
 end
 
--- Функция для копирования головы (только меша и лица, без цвета)
+-- Оптимизированная функция для копирования головы
 local function copyHead(targetChar, myChar)
     local targetHead = targetChar:FindFirstChild("Head")
     local myHead = myChar:FindFirstChild("Head")
@@ -147,60 +174,49 @@ local function copyHead(targetChar, myChar)
     -- Копируем меш головы
     local targetMesh = targetHead:FindFirstChildOfClass("SpecialMesh")
     if targetMesh then
-        -- Удаляем старый меш
         for _, mesh in ipairs(myHead:GetChildren()) do
             if mesh:IsA("SpecialMesh") then
                 mesh:Destroy()
             end
         end
-        -- Копируем новый меш
-        local newMesh = targetMesh:Clone()
-        newMesh.Parent = myHead
+        targetMesh:Clone().Parent = myHead
     end
     
-    -- Копируем лицо (только текстуру, не цвет)
+    -- Копируем лицо
     local face = targetHead:FindFirstChildOfClass("Decal")
     if face then
-        -- Удаляем старое лицо
         for _, decal in ipairs(myHead:GetChildren()) do
             if decal:IsA("Decal") then
                 decal:Destroy()
             end
         end
-        -- Копируем новое лицо
-        local newFace = face:Clone()
-        newFace.Parent = myHead
+        face:Clone().Parent = myHead
     end
 end
 
--- Функция для копирования одежды
+-- Оптимизированная функция для копирования одежды
 local function copyClothing(targetChar, myChar)
-    -- Удаляем старую одежду
     for _, item in ipairs(myChar:GetChildren()) do
         if item:IsA("Shirt") or item:IsA("Pants") or item:IsA("ShirtGraphic") then
             item:Destroy()
         end
     end
     
-    -- Копируем новую одежду
     for _, item in ipairs(targetChar:GetChildren()) do
         if item:IsA("Shirt") or item:IsA("Pants") or item:IsA("ShirtGraphic") then
-            local clone = item:Clone()
-            clone.Parent = myChar
+            item:Clone().Parent = myChar
         end
     end
 end
 
--- Функция для копирования волос и аксессуаров
+-- Оптимизированная функция для копирования аксессуаров
 local function copyAccessories(targetChar, myChar)
-    -- Удаляем старые аксессуары
     for _, item in ipairs(myChar:GetChildren()) do
         if item:IsA("Accessory") or item:IsA("Hat") then
             item:Destroy()
         end
     end
     
-    -- Копируем новые аксессуары
     for _, originalAccessory in ipairs(targetChar:GetChildren()) do
         if (originalAccessory:IsA("Accessory") or originalAccessory:IsA("Hat")) and originalAccessory:FindFirstChild("Handle") then
             local clone = originalAccessory:Clone()
@@ -210,182 +226,143 @@ local function copyAccessories(targetChar, myChar)
     end
 end
 
--- Функция для копирования частей тела (рук, ног и т.д.)
+-- Оптимизированная функция для копирования частей тела
 local function copyBodyParts(targetChar, myChar)
-    local bodyParts = {"LeftArm", "RightArm", "LeftLeg", "RightLeg", "Torso", "Head"}
+    local bodyParts = {"LeftArm", "RightArm", "LeftLeg", "RightLeg", "Torso"}
     
     for _, partName in ipairs(bodyParts) do
         local targetPart = targetChar:FindFirstChild(partName)
         local myPart = myChar:FindFirstChild(partName)
         
         if targetPart and myPart then
-            -- Копируем размер и форму
             myPart.Size = targetPart.Size
-            
-            -- Копируем все декоративные элементы
-            for _, child in ipairs(targetPart:GetChildren()) do
-                if child:IsA("Decal") or child:IsA("SpecialMesh") or child:IsA("Texture") then
-                    -- Удаляем старые аналогичные элементы
-                    for _, myChild in ipairs(myPart:GetChildren()) do
-                        if myChild.ClassName == child.ClassName and myChild.Name == child.Name then
-                            myChild:Destroy()
-                        end
-                    end
-                    
-                    -- Копируем новый элемент
-                    local clone = child:Clone()
-                    clone.Parent = myPart
-                end
-            end
         end
     end
 end
 
--- Функция для копирования анимаций из каталога Roblox
+-- Оптимизированная функция для копирования анимаций
 local function copyRobloxAnimations(targetChar, myChar)
     local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
     local myHumanoid = myChar:FindFirstChildOfClass("Humanoid")
     
-    if not targetHumanoid or not myHumanoid then return end
+    if not targetHumanoid or not myHumanoid then return false end
     
-    -- Получаем Animator
-    local targetAnimator = targetHumanoid:FindFirstChildOfClass("Animator")
-    local myAnimator = myHumanoid:FindFirstChildOfClass("Animator")
-    
-    if not myAnimator then
-        myAnimator = Instance.new("Animator")
-        myAnimator.Parent = myHumanoid
-    end
-    
-    -- Очищаем старые анимации
-    for _, track in ipairs(myAnimator:GetPlayingAnimationTracks()) do
-        track:Stop()
-    end
-    
-    -- Ищем скрипт Animate у целевого игрока
+    -- Ищем скрипт Animate
     local targetAnimate = targetChar:FindFirstChild("Animate")
     if targetAnimate then
-        -- Удаляем наш старый скрипт Animate
         local myAnimate = myChar:FindFirstChild("Animate")
         if myAnimate then
             myAnimate:Destroy()
         end
         
-        -- Копируем скрипт Animate
-        local newAnimate = targetAnimate:Clone()
-        newAnimate.Parent = myChar
-        
-        -- Ждем немного для применения анимаций
-        task.wait(0.5)
+        targetAnimate:Clone().Parent = myChar
         return true
     end
     
-    -- Если скрипта Animate нет, ищем анимации в Humanoid
-    local animationTypes = {
-        "Walk",
-        "Run", 
-        "Jump",
-        "Idle",
-        "Fall",
-        "Swim",
-        "Climb"
-    }
-    
-    for _, animType in ipairs(animationTypes) do
-        local targetAnim = targetHumanoid:FindFirstChild(animType .. "Animation")
-        if targetAnim and targetAnim:IsA("Animation") then
-            -- Удаляем нашу старую анимацию
-            local myAnim = myHumanoid:FindFirstChild(animType .. "Animation")
-            if myAnim then
-                myAnim:Destroy()
-            end
-            
-            -- Копируем новую анимацию
-            local newAnim = targetAnim:Clone()
-            newAnim.Parent = myHumanoid
-        end
-    end
-    
-    -- Копируем скорости движения
-    myHumanoid.WalkSpeed = targetHumanoid.WalkSpeed
-    myHumanoid.JumpPower = targetHumanoid.JumpPower
-    
-    return true
+    return false
 end
 
--- Функция смены внешности
+-- Основная функция смены внешности с оптимизацией
 local function ChangeAppearance(targetPlayer)
-    if not targetPlayer.Character or not LocalPlayer.Character then return end
+    if not targetPlayer or not targetPlayer.Character or not LocalPlayer.Character then 
+        return false 
+    end
 
     local char = LocalPlayer.Character
     local targetChar = targetPlayer.Character
-
-    -- Ждем немного чтобы персонаж обновился
-    task.wait(0.1)
-
-    -- Сначала копируем цвет тела (ВКЛЮЧАЯ голову и цвет кожи)
-    copyBodyColor(targetChar, char)
     
-    -- Копируем части тела (руки, ноги, торс)
-    copyBodyParts(targetChar, char)
-    
-    -- Затем копируем голову (только меш и лицо, без цвета)
-    copyHead(targetChar, char)
-    
-    -- Копируем одежду
-    copyClothing(targetChar, char)
-    
-    -- Копируем волосы и аксессуары
-    copyAccessories(targetChar, char)
-    
-    -- Копируем масштаб тела для лучшего соответствия
-    local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
-    local myHumanoid = char:FindFirstChildOfClass("Humanoid")
-    
-    if targetHumanoid and myHumanoid then
-        myHumanoid.BodyTypeScale = targetHumanoid.BodyTypeScale
-        myHumanoid.HeadScale = targetHumanoid.HeadScale
-        myHumanoid.BodyDepthScale = targetHumanoid.BodyDepthScale
-        myHumanoid.BodyHeightScale = targetHumanoid.BodyHeightScale
-        myHumanoid.BodyWidthScale = targetHumanoid.BodyWidthScale
-        
-        -- Копируем позу
-        myHumanoid.Sit = targetHumanoid.Sit
+    -- Ждем загрузку персонажей
+    if not char:FindFirstChild("Head") or not targetChar:FindFirstChild("Head") then
+        return false
     end
+
+    -- Выполняем копирование с защитой от ошибок
+    local success = pcall(function()
+        copyBodyColor(targetChar, char)
+        copyBodyParts(targetChar, char)
+        copyHead(targetChar, char)
+        copyClothing(targetChar, char)
+        copyAccessories(targetChar, char)
+        
+        local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
+        local myHumanoid = char:FindFirstChildOfClass("Humanoid")
+        
+        if targetHumanoid and myHumanoid then
+            myHumanoid.BodyTypeScale = targetHumanoid.BodyTypeScale
+            myHumanoid.HeadScale = targetHumanoid.HeadScale
+        end
+    end)
+    
+    return success
+end
+
+-- Обновление статуса
+local function updateStatus(text, color)
+    StatusLabel.Text = text
+    StatusLabel.TextColor3 = color or Color3.fromRGB(200,200,200)
 end
 
 -- Кнопка смены внешности
 Button.MouseButton1Click:Connect(function()
     local name = TextBox.Text
-    local target = Players:FindFirstChild(name)
+    local target = findPlayerByPartialName(name)
+    
     if target then
-        ChangeAppearance(target)
-        Button.Text = "Внешность скопирована!"
-        task.wait(1.5)
-        Button.Text = "Сменить внешность"
+        updateStatus("Копируем внешность...", Color3.fromRGB(255,255,0))
+        local success = ChangeAppearance(target)
+        
+        if success then
+            updateStatus("Внешность скопирована!", Color3.fromRGB(0,255,0))
+            Button.Text = "Готово!"
+        else
+            updateStatus("Ошибка копирования!", Color3.fromRGB(255,0,0))
+            Button.Text = "Ошибка!"
+        end
     else
-        Button.Text = "Игрок не найден!"
-        task.wait(1.5)
-        Button.Text = "Сменить внешность"
+        updateStatus("Игрок не найден!", Color3.fromRGB(255,0,0))
+        Button.Text = "Не найден!"
     end
+    
+    task.wait(2)
+    Button.Text = "Сменить внешность"
+    updateStatus("Готово")
 end)
 
 -- Кнопка копирования анимаций
 AnimButton.MouseButton1Click:Connect(function()
     local name = TextBox.Text
-    local target = Players:FindFirstChild(name)
+    local target = findPlayerByPartialName(name)
+    
     if target and target.Character and LocalPlayer.Character then
+        updateStatus("Копируем анимации...", Color3.fromRGB(255,255,0))
         local success = copyRobloxAnimations(target.Character, LocalPlayer.Character)
+        
         if success then
-            AnimButton.Text = "Анимации скопированы!"
+            updateStatus("Анимации скопированы!", Color3.fromRGB(0,255,0))
+            AnimButton.Text = "Готово!"
         else
-            AnimButton.Text = "Ошибка копирования!"
+            updateStatus("Анимации не найдены!", Color3.fromRGB(255,165,0))
+            AnimButton.Text = "Не найдены!"
         end
-        task.wait(1.5)
-        AnimButton.Text = "Копировать анимации"
     else
-        AnimButton.Text = "Игрок не найден!"
-        task.wait(1.5)
-        AnimButton.Text = "Копировать анимации"
+        updateStatus("Игрок не найден!", Color3.fromRGB(255,0,0))
+        AnimButton.Text = "Ошибка!"
+    end
+    
+    task.wait(2)
+    AnimButton.Text = "Копировать анимации"
+    updateStatus("Готово")
+end)
+
+-- Автозаполнение при фокусе
+TextBox.Focused:Connect(function()
+    TextBox.Text = ""
+end)
+
+TextBox.FocusLost:Connect(function()
+    if TextBox.Text == "" then
+        TextBox.Text = "Введите ник игрока"
     end
 end)
+
+updateStatus("Готово к работе")
