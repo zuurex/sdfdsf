@@ -1,0 +1,19 @@
+local Player = game:GetService("Players").LocalPlayer
+local Mouse = Player:GetMouse()
+local Enabled = false
+Mouse.KeyDown:Connect(
+    function(Key)
+        if Key == "t" then --input key
+            Enabled = not Enabled
+            if Enabled == true then
+                repeat
+                    game:GetService("RunService").Heartbeat:wait()
+                    game:GetService("VirtualInputManager"):SendMouseWheelEvent("0.84", "0.84", true, game) -- change these numbers for higher delay
+                    game:GetService("RunService").Heartbeat:wait()
+                    game:GetService("VirtualInputManager"):SendMouseWheelEvent("0.84", "0.84", false, game)
+                    game:GetService("RunService").Heartbeat:wait()
+                until Enabled == false
+            end
+        end
+    end
+)
